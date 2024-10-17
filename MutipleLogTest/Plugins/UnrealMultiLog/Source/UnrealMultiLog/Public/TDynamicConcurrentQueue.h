@@ -1,3 +1,4 @@
+// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
 #include "HAL/PlatformAtomics.h" // For FPlatformAtomics

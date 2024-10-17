@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
 
 #include "UnrealMultiLog.h"
 
