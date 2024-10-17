@@ -1,4 +1,3 @@
-// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,6 +8,9 @@
 #include "Misc/Paths.h"
 #include "Async/Async.h"
 #include "TDynamicConcurrentQueue.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include <atomic>
 
 /**
  * Multi-threaded log device for writing UE_LOG messages to a file without blocking the main thread.
@@ -27,9 +29,14 @@ public:
     // Destructor
     virtual ~FMultiThreadedLogDevice()
     {
-        bIsRunning = false;
+        Stop();
+    }
 
-        // Ensure all logs are written before shutting down
+    void Stop()
+    {
+        bIsRunning.store(false); // Set atomic flag to false
+
+        // Wait for the thread to complete
         if (Thread)
         {
             Thread->WaitForCompletion();
@@ -46,10 +53,9 @@ public:
         LogQueue.Enqueue(MoveTemp(LogEntry));  // No copy of the string, move to queue
     }
 
-    // Main run function for the background thread
     virtual uint32 Run() override
     {
-        while (bIsRunning || !LogQueue.IsEmpty())
+        while (bIsRunning.load() || !LogQueue.IsEmpty())
         {
             WriteLogsToFile();
             FPlatformProcess::Sleep(0.01f);  // Control the frequency of log writing
@@ -57,33 +63,32 @@ public:
         return 0;
     }
 
-    virtual void Exit() override
+    // This function will be called on pre-exit
+    void OnPreExit()
     {
-        WriteLogsToFile();  // Write any remaining logs before exit
+        Stop(); // Safely stop the thread
+        WriteLogsToFile();  // Write any remaining logs
     }
 
 private:
-    FString LogFilePath;  // The path to the log file
-    TDynamicConcurrentQueue<TUniquePtr<FString>> LogQueue;  // Lock-free queue for log messages
-    FRunnableThread* Thread;  // The background thread for writing logs
-    bool bIsRunning;  // Flag to control the running state of the thread
+    FString LogFilePath;
+    TDynamicConcurrentQueue<TUniquePtr<FString>> LogQueue;
+    FRunnableThread* Thread;
+    std::atomic<bool> bIsRunning; // Use atomic flag for thread-safe access without locks
 
-    // Helper to write logs from the queue to the file
     void WriteLogsToFile()
     {
         QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_WriteLogsToFile)
-        TUniquePtr<FString> LogEntry;
-        while (LogQueue.Dequeue(LogEntry))  // Dequeue the log message from the queue
+            TUniquePtr<FString> LogEntry;
+        while (LogQueue.Dequeue(LogEntry))
         {
             if (LogEntry.IsValid())
             {
-                // Append the log message to the file
                 FFileHelper::SaveStringToFile(*LogEntry + LINE_TERMINATOR, *LogFilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
             }
         }
     }
 
-    // Helper to get the string representation of log verbosity
     const TCHAR* GetVerbosityName(ELogVerbosity::Type Verbosity)
     {
         switch (Verbosity)
