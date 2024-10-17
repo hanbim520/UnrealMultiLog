@@ -71,6 +71,7 @@ private:
     // Helper to write logs from the queue to the file
     void WriteLogsToFile()
     {
+        QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_WriteLogsToFile)
         TUniquePtr<FString> LogEntry;
         while (LogQueue.Dequeue(LogEntry))  // Dequeue the log message from the queue
         {
