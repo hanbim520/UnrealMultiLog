@@ -1,41 +1,43 @@
 // Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
 
 #include "UnrealMultiLog.h"
-// #include <csignal>
-// #include <chrono>
-// #include <thread>
 
 #define LOCTEXT_NAMESPACE "FUnrealMultiLogModule"
+FMultiThreadedLogDevice* FUnrealMultiLogModule::MultiThreadedLogDevice = nullptr;
 
 
-// void SignalHandler(int signal) {
-// 	// TO-DO something
-// }
+void CaptureStackTrace(FString& OutStackTrace)
+{
+	const int32 IgnoreCount = 4; // Ignore the current function in the stack trace
+	const SIZE_T BufferSize = 2048; // Size of the buffer to hold the stack trace
+	ANSICHAR StackTraceBuffer[BufferSize];
 
+	// Call the StackWalkAndDump function
+	FPlatformStackWalk::StackWalkAndDump(StackTraceBuffer, BufferSize, IgnoreCount);
+
+	// Convert the buffer to an FString
+	OutStackTrace = FString(UTF8_TO_TCHAR(StackTraceBuffer));
+}
+
+
+void FUnrealMultiLogModule::HandleShutdownAfterError()
+{
+    FString StackTrace;
+    CaptureStackTrace(StackTrace);
+    if (MultiThreadedLogDevice)
+    {
+        MultiThreadedLogDevice->CrashCaptureLog(StackTrace);
+    }
+
+}
 
 void FUnrealMultiLogModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-
-// 	std::signal(SIGINT, SignalHandler);
-// 	std::signal(SIGILL, SignalHandler);
-// 	std::signal(SIGFPE, SignalHandler);
-// 	std::signal(SIGSEGV, SignalHandler);
-// 	std::signal(SIGTERM, SignalHandler);
-// 	std::signal(SIGBREAK, SignalHandler);
-// 	std::signal(SIGABRT, SignalHandler);
 	
 	InitializeMultiThreadedLogging();
 
-	FCoreDelegates::OnPreExit.AddLambda([this]()
-		{
-			if (MultiThreadedLogDevice)
-			{
-				MultiThreadedLogDevice->OnPreExit();
-			}
-			
-		});
-
+    FCoreDelegates::OnShutdownAfterError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
 }
 
 void FUnrealMultiLogModule::ShutdownModule()
@@ -44,7 +46,7 @@ void FUnrealMultiLogModule::ShutdownModule()
 	// we call this function before unloading the module.
 
 	ShutdownMultiThreadedLogging();
-	FCoreDelegates::OnPreExit.RemoveAll(this);
+    FCoreDelegates::OnShutdownAfterError.RemoveAll(this);
 }
 
 #undef LOCTEXT_NAMESPACE

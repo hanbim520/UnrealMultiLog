@@ -7,6 +7,12 @@
 #include "HoloLens/HoloLensPlatformOutputDevices.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+
+static  FString GetLogFilePath()
+{
+    return FPaths::ProjectLogDir() / (UKismetSystemLibrary::GetGameName() + TEXT(".log"));
+}
+
 class FUnrealMultiLogModule : public IModuleInterface
 {
 public:
@@ -18,8 +24,6 @@ public:
 public:
     void InitializeMultiThreadedLogging()
     {
-       
-
         // Add the custom log device to the global log system
         if (GLog)
         {
@@ -28,10 +32,11 @@ public:
             OldLog->Flush();
             OldLog->TearDown();
 
-            FString LogFilePath = FPaths::ProjectLogDir() / UKismetSystemLibrary::GetGameName() + TEXT(".log");
+            FString LogFilePath = GetLogFilePath();
             MultiThreadedLogDevice = new FMultiThreadedLogDevice(LogFilePath);
 
             GLog->AddOutputDevice(MultiThreadedLogDevice);
+            GLog->EnableBacklog(true);
         }
     }
 
@@ -50,6 +55,12 @@ public:
         }
     }
 
+    
+public:
+       static void SignalHandler(int signal);
+
+       void HandleShutdownAfterError();
+
 private:
-    FMultiThreadedLogDevice* MultiThreadedLogDevice = nullptr;
+    static  FMultiThreadedLogDevice* MultiThreadedLogDevice;
 };
