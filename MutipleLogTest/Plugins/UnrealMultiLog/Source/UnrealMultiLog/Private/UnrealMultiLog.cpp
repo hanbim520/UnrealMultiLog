@@ -67,7 +67,7 @@ void FUnrealMultiLogModule::StartupModule()
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 	
 	InitializeMultiThreadedLogging();
-	FCoreDelegates::OnHandleSystemError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
+	//FCoreDelegates::OnHandleSystemError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
     //FCoreDelegates::OnShutdownAfterError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
 }
 
@@ -77,7 +77,7 @@ void FUnrealMultiLogModule::ShutdownModule()
 	// we call this function before unloading the module.
 
 	ShutdownMultiThreadedLogging();
-    FCoreDelegates::OnHandleSystemError.RemoveAll(this);
+   // FCoreDelegates::OnHandleSystemError.RemoveAll(this);
 	//FCoreDelegates::OnShutdownAfterError.RemoveAll(this);
 }
 
