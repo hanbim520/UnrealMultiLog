@@ -1,3 +1,4 @@
+// Copyright Zhanghaijun 710605420@qq.com, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -16,6 +17,17 @@
 #include <string>
 #include "Kismet/KismetSystemLibrary.h"
 #include "corecrt_io.h"
+
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Windows/PreWindowsApi.h"
+
+#include <winnt.h>  
+
+#include "Windows/PostWindowsApi.h"
+#include "Windows/HideWindowsPlatformTypes.h"
+
+#endif
 
 
 /**
@@ -90,13 +102,27 @@ public:
         return 0;
     }
 
-    void CrashCaptureLog(FString StackTrace)
+    void CrashCaptureLog(char* StackTraceBuffer)
     {
-        int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+      //  int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+        int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT , 0644);
         if (fd != -1)
         {
-            FTCHARToUTF8 Converted(*StackTrace);
-            write(fd, Converted.Get(), Converted.Length());
+         //   FTCHARToUTF8 Converted(*StackTrace);
+          //  write(fd, Converted.Get(), Converted.Length());
+            size_t BytesWritten = write(fd, StackTraceBuffer, strlen(StackTraceBuffer));
+#if PLATFORM_WINDOWS
+#ifdef _WIN32
+            // Windows-specific: Flush file buffers to ensure data is written to disk
+            HANDLE hFile = (HANDLE)_get_osfhandle(fd); // Convert the file descriptor to a Windows handle
+            if (hFile != INVALID_HANDLE_VALUE)
+            {
+                FlushFileBuffers(hFile);  // Force the buffer to flush to disk
+            }
+#endif
+#endif
+
+
             close(fd);
         }
     }
