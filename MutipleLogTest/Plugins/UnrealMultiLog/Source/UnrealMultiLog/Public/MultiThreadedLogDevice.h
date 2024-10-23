@@ -168,7 +168,7 @@ private:
 
     void LowLevelWriteLogsToFile()
     {
-        QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_WriteLogsToFile)
+        QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_LowLevelWriteLogsToFile)
             TUniquePtr<FString> LogEntry;
         while (LogQueue.Dequeue(LogEntry))
         {
