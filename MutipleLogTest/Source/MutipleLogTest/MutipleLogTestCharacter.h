@@ -29,6 +29,23 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	class FMyWorkerThread* WorkerThread = nullptr;
+	class FRunnableThread* RunnableThread = nullptr;
+
+	class FMyWorkerThread* WorkerThread1 = nullptr;
+	class FRunnableThread* RunnableThread1 = nullptr;
+
+	UFUNCTION(BlueprintCallable)
+	void StartThreadLog();
+	UFUNCTION(BlueprintCallable)
+	void StopThreadLog();
+
+	void StartMyWorkerThread();
+	void StopMyWorkerThread();
+
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 protected:
 
 	/** Resets HMD orientation in VR. */

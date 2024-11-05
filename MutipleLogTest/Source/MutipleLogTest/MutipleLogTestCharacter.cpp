@@ -50,6 +50,18 @@ AMutipleLogTestCharacter::AMutipleLogTestCharacter()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
+void AMutipleLogTestCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+}
+void AMutipleLogTestCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	StopThreadLog();
+}
+
 void AMutipleLogTestCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
@@ -136,5 +148,32 @@ void AMutipleLogTestCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+
+		UE_LOG(LogTemp,Log,TEXT("DDD"));
 	}
+}
+
+void AMutipleLogTestCharacter::StartMyWorkerThread()
+{
+}
+
+void AMutipleLogTestCharacter::StopMyWorkerThread()
+{
+
+
+}
+
+
+void AMutipleLogTestCharacter::StartThreadLog()
+{
+	
+	StartMyWorkerThread();
+
+}
+
+void AMutipleLogTestCharacter::StopThreadLog()
+{
+
+	StopMyWorkerThread();
+
 }
