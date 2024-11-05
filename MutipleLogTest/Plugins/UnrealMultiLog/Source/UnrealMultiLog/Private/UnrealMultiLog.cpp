@@ -69,6 +69,7 @@ void FUnrealMultiLogModule::StartupModule()
 	InitializeMultiThreadedLogging();
 	//FCoreDelegates::OnHandleSystemError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
     //FCoreDelegates::OnShutdownAfterError.AddRaw(this, &FUnrealMultiLogModule::HandleShutdownAfterError);
+
 }
 
 void FUnrealMultiLogModule::ShutdownModule()
@@ -79,6 +80,8 @@ void FUnrealMultiLogModule::ShutdownModule()
 	ShutdownMultiThreadedLogging();
    // FCoreDelegates::OnHandleSystemError.RemoveAll(this);
 	//FCoreDelegates::OnShutdownAfterError.RemoveAll(this);
+
+
 }
 
 #undef LOCTEXT_NAMESPACE

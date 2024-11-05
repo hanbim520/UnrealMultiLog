@@ -74,7 +74,8 @@ public:
         // Format the log message and enqueue it for the background thread
         TUniquePtr<FString> LogEntry = MakeUnique<FString>(FString::Printf(TEXT("[%s] [%s]: %s\n"), *Category.ToString(), GetVerbosityName(Verbosity), V));
 
-        LogQueue.Enqueue(MoveTemp(LogEntry));  // Move to queue without copying
+        FTCHARToUTF8 Converted(**LogEntry.Get());
+        LogQueue.Enqueue(MakeUnique<std::string>(std::move(Converted.Get())));  // Move to queue without copying
     }
 
     void CaptureStackTrace(FString& OutStackTrace)
@@ -146,30 +147,30 @@ public:
 
 private:
     FString LogFilePath;  // Path to the log file
-    TDynamicConcurrentQueue<TUniquePtr<FString>> LogQueue;  // Thread-safe queue for log entries
+    TDynamicConcurrentQueue<TUniquePtr<std::string>> LogQueue;  // Thread-safe queue for log entries
     FRunnableThread* Thread;  // Thread for writing logs
     std::atomic<bool> bIsRunning; // Atomic flag for thread-safe access without locks
     std::string LogFilePathStr;
 
 private:
     // Write logs from the queue to the file
-    void WriteLogsToFile()
-    {
-        QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_WriteLogsToFile)
-            TUniquePtr<FString> LogEntry;
-        while (LogQueue.Dequeue(LogEntry))
-        {
-            if (LogEntry.IsValid())
-            {
-                FFileHelper::SaveStringToFile(*LogEntry + LINE_TERMINATOR, *LogFilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
-            }
-        }
-    }
+//     void WriteLogsToFile()
+//     {
+//         QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_WriteLogsToFile)
+//             TUniquePtr<std::string> LogEntry;
+//         while (LogQueue.Dequeue(LogEntry))
+//         {
+//             if (LogEntry.IsValid())
+//             {
+//                 FFileHelper::SaveStringToFile(*LogEntry + LINE_TERMINATOR, *LogFilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+//             }
+//         }
+//     }
 
     void LowLevelWriteLogsToFile()
     {
         QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_LowLevelWriteLogsToFile)
-            TUniquePtr<FString> LogEntry;
+            TUniquePtr<std::string> LogEntry;
         while (LogQueue.Dequeue(LogEntry))
         {
             if (LogEntry.IsValid())
@@ -179,8 +180,9 @@ private:
                 int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
                 if (fd != -1)
                 {
-                    FTCHARToUTF8 Converted(**LogEntry.Get());
-                    write(fd, Converted.Get(), Converted.Length());
+//                     FTCHARToUTF8 Converted(**LogEntry.Get());
+//                     write(fd, Converted.Get(), Converted.Length());
+                    write(fd, LogEntry.Get(), LogEntry.Get()->length());
                     close(fd);
                 }
             }

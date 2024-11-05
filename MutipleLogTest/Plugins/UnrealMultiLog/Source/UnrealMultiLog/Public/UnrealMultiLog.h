@@ -8,6 +8,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 
+
 static  FString GetLogFilePath()
 {
     return FPaths::ProjectLogDir() / (UKismetSystemLibrary::GetGameName() + TEXT(".log"));
