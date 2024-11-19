@@ -182,7 +182,7 @@ private:
                 {
 //                     FTCHARToUTF8 Converted(**LogEntry.Get());
 //                     write(fd, Converted.Get(), Converted.Length());
-                    write(fd, LogEntry.Get(), LogEntry.Get()->length());
+                    write(fd, LogEntry.Get()->c_str(), LogEntry.Get()->length());
                     close(fd);
                 }
             }
