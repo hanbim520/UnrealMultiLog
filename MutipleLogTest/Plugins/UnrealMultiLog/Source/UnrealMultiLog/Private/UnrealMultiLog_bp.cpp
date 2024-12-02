@@ -1,4 +1,14 @@
-// 
+// Copyright 2024 XD Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+    UnrealMultiLog_bp.cpp
+
+    Author: Zhang, HaiJun
+
+    Desc:
+=============================================================================*/
+
+
 // #include "UnrealMultiLog.h"
 // #if PLATFORM_WINDOWS
 // #include "Windows/AllowWindowsPlatformTypes.h"
@@ -84,10 +94,10 @@
 // void UnexpectedHandler();
 // void InstallUnexceptedExceptionHandler();
 // 
-// // ½á¹¹»¯Òì³£´¦Àíº¯Êý
+// // ï¿½á¹¹ï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // LONG WINAPI UnhandledStructuredException(EXCEPTION_POINTERS* ExceptionInfo)
 // {
-//     // ¼ÇÂ¼±ÀÀ£ÐÅÏ¢
+//     // ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 //     FString LogFile = GetLogFilePath();
 //     FILE* file = nullptr;
 //     fopen_s(&file, TCHAR_TO_UTF8(*LogFile), "a");
@@ -96,10 +106,10 @@
 //         fprintf(file, "Unhandled exception occurred!\n");
 //         fclose(file);
 //     }
-//     return EXCEPTION_EXECUTE_HANDLER; // ´¦ÀíÒì³£
+//     return EXCEPTION_EXECUTE_HANDLER; // ï¿½ï¿½ï¿½ï¿½ï¿½ì³£
 // }
 // 
-// // ´¿Ðéº¯Êýµ÷ÓÃ´¦Àí³ÌÐò
+// // ï¿½ï¿½ï¿½éº¯ï¿½ï¿½ï¿½ï¿½ï¿½Ã´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void PureCallHandler()
 // {
 //     FString LogFile = GetLogFilePath();
@@ -110,10 +120,10 @@
 //         fprintf(file, "Pure virtual function called!\n");
 //         fclose(file);
 //     }
-//     abort(); // ÖÕÖ¹³ÌÐò
+//     abort(); // ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½
 // }
 // 
-// // ×Ô¶¨Òå new ²Ù×÷·û´¦Àí³ÌÐò
+// // ï¿½Ô¶ï¿½ï¿½ï¿½ new ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void NewHandler()
 // {
 //     FString LogFile = GetLogFilePath();
@@ -124,10 +134,10 @@
 //         fprintf(file, "Memory allocation failed!\n");
 //         fclose(file);
 //     }
-//     throw std::bad_alloc(); // Å×³öÒì³£
+//     throw std::bad_alloc(); // ï¿½×³ï¿½ï¿½ì³£
 // }
 // 
-// // ÎÞÐ§²ÎÊý´¦Àí³ÌÐò
+// // ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void InvalidParameterHandler(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line)
 // {
 //     FString LogFile = GetLogFilePath();
@@ -140,7 +150,7 @@
 //     }
 // }
 // 
-// // ÐÅºÅ´¦Àí³ÌÐò
+// // ï¿½ÅºÅ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void SigabrtHandler(int signal)
 // {
 //     FString LogFile = GetLogFilePath();
@@ -189,7 +199,7 @@
 //     }
 // }
 // 
-// // C++ ÔËÐÐÊ±Òì³£´¦Àí³ÌÐò
+// // C++ ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void TerminateHandler()
 // {
 //     FString LogFile = GetLogFilePath();
@@ -214,19 +224,19 @@
 //     }
 // }
 // 
-// // °²×°Òì³£´¦Àí³ÌÐò
+// // ï¿½ï¿½×°ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 // void InstallUnexceptedExceptionHandler()
 // {
-//     // °²×° SEH ´¦Àí³ÌÐò
+//     // ï¿½ï¿½×° SEH ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //     ::SetUnhandledExceptionFilter(UnhandledStructuredException);
 // 
-//     // °²×° CRT ´¦Àí³ÌÐò
+//     // ï¿½ï¿½×° CRT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //     _set_purecall_handler(PureCallHandler);
 //    // _set_new_handler(NewHandler);
 //    // _set_invalid_parameter_handler(InvalidParameterHandler);
 //     _set_abort_behavior(_CALL_REPORTFAULT, _CALL_REPORTFAULT);
 // 
-//     // °²×°ÐÅºÅ´¦Àí³ÌÐò
+//     // ï¿½ï¿½×°ï¿½ÅºÅ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //     std::signal(SIGINT, FUnrealMultiLogModule::SignalHandler);
 //     std::signal(SIGILL, FUnrealMultiLogModule::SignalHandler);
 //     std::signal(SIGFPE, FUnrealMultiLogModule::SignalHandler);
@@ -235,7 +245,7 @@
 //     std::signal(SIGBREAK, FUnrealMultiLogModule::SignalHandler);
 //     std::signal(SIGABRT, FUnrealMultiLogModule::SignalHandler);
 // 
-//     // °²×° C++ ÔËÐÐÊ±´¦Àí³ÌÐò
+//     // ï¿½ï¿½×° C++ ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //     std::set_terminate(TerminateHandler);
 //     std::set_unexpected(UnexpectedHandler);
 // }

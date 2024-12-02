@@ -1,4 +1,12 @@
-// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
+// Copyright 2024 XD Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+    UnrealMultiLog.build.cs
+
+    Author: Zhang, HaiJun
+
+    Desc:
+=============================================================================*/
 
 using UnrealBuildTool;
 
@@ -7,8 +15,10 @@ public class UnrealMultiLog : ModuleRules
 	public UnrealMultiLog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
+
+        PrivateDefinitions.Add("_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR=1");
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
 			}

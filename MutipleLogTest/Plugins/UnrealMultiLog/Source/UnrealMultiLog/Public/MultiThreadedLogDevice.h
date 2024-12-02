@@ -1,4 +1,14 @@
-// Copyright Zhanghaijun 710605420@qq.com, Inc. All Rights Reserved.
+// Copyright 2024 XD Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+    MultiThreadedLogDevice.h
+
+    Author: Zhang, HaiJun
+
+    Desc:
+=============================================================================*/
+
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -16,18 +26,23 @@
 #include <fcntl.h>
 #include <string>
 #include "Kismet/KismetSystemLibrary.h"
-#include "corecrt_io.h"
+
 
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/PreWindowsApi.h"
-
+#include "corecrt_io.h"
 #include <winnt.h>  
 
 #include "Windows/PostWindowsApi.h"
 #include "Windows/HideWindowsPlatformTypes.h"
-
+#else
+#include <unistd.h>
 #endif
+#include "Misc/OutputDeviceHelper.h"
+#include "CoreGlobals.h"
+
+#define  PERMISSIONS 0777
 
 
 /**
@@ -38,7 +53,7 @@ class UNREALMULTILOG_API FMultiThreadedLogDevice : public FOutputDevice, public 
 public:
     // Constructor
     FMultiThreadedLogDevice(const FString& InLogFilePath)
-        : LogFilePath(InLogFilePath)
+        : LogFilePath(*InLogFilePath)
         , bIsRunning(true)
         , LogFilePathStr(TCHAR_TO_UTF8(*InLogFilePath))
     {
@@ -69,13 +84,42 @@ public:
     }
 
     // Override the Serialize function to capture UE_LOG messages
+    virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category, const double Time) override
+    {
+        const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
+        TCHAR OutputString[MAX_SPRINTF] = TEXT(""); //@warning: this is safe as FCString::Sprintf only use 1024 characters max
+        FCString::Sprintf(OutputString, TEXT("%s%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes, RealTime), TEXT("\n"));
+        std::string LogEntry = TCHAR_TO_UTF8(OutputString);
+        LogQueue.Enqueue(std::move(LogEntry));
+    }
     virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category) override
     {
-        // Format the log message and enqueue it for the background thread
-        TUniquePtr<FString> LogEntry = MakeUnique<FString>(FString::Printf(TEXT("[%s] [%s]: %s\n"), *Category.ToString(), GetVerbosityName(Verbosity), V));
 
-        FTCHARToUTF8 Converted(**LogEntry.Get());
-        LogQueue.Enqueue(MakeUnique<std::string>(std::move(Converted.Get())));  // Move to queue without copying
+    }
+    virtual void SerializeForOnline(const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category,FString& time) 
+    {
+        // Format the log message and enqueue it for the background thread
+//         TUniquePtr<FString> LogEntry = MakeUnique<FString>(FString::Printf(TEXT("[%s][%s][%s]: %s\n"),*time, *Category.ToString(), GetVerbosityName(Verbosity), V));
+// 
+//         FTCHARToUTF8 Converted(**LogEntry.Get());
+//         LogQueue.Enqueue(MakeUnique<std::string>(std::move(Converted.Get())));  // Move to queue without copying
+        
+        std::string TimeStdString = TCHAR_TO_UTF8(*time);
+        std::string CategoryStdString = TCHAR_TO_UTF8(*Category.ToString());
+        std::string VerbosityStdString = TCHAR_TO_UTF8(GetVerbosityName(Verbosity));
+        std::string LogEntry = std::string("[")
+            + TimeStdString
+            + std::string("]")
+            + std::string("[")
+            + std::string(TCHAR_TO_UTF8(*Category.ToString()))
+            + std::string("]")
+            + std::string("[")
+            + std::string(TCHAR_TO_UTF8(*GetVerbosityName(Verbosity)))
+            + std::string("]")
+            + std::string(TCHAR_TO_UTF8(V))
+            + std::string("\n");
+
+        LogQueue.Enqueue(std::move(LogEntry));
     }
 
     void CaptureStackTrace(FString& OutStackTrace)
@@ -106,7 +150,7 @@ public:
     void CrashCaptureLog(char* StackTraceBuffer)
     {
       //  int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-        int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT , 0644);
+        int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT , PERMISSIONS);
         if (fd != -1)
         {
          //   FTCHARToUTF8 Converted(*StackTrace);
@@ -122,8 +166,6 @@ public:
             }
 #endif
 #endif
-
-
             close(fd);
         }
     }
@@ -145,9 +187,10 @@ public:
         ForceFlushLogs();  // Write any remaining logs
     }
 
+    FString GetLogFilePath();
 private:
     FString LogFilePath;  // Path to the log file
-    TDynamicConcurrentQueue<TUniquePtr<std::string>> LogQueue;  // Thread-safe queue for log entries
+    TDynamicConcurrentQueue<std::string> LogQueue;  // Thread-safe queue for log entries
     FRunnableThread* Thread;  // Thread for writing logs
     std::atomic<bool> bIsRunning; // Atomic flag for thread-safe access without locks
     std::string LogFilePathStr;
@@ -170,23 +213,27 @@ private:
     void LowLevelWriteLogsToFile()
     {
         QUICK_SCOPE_CYCLE_COUNTER(FMultiThreadedLogDevice_LowLevelWriteLogsToFile)
-            TUniquePtr<std::string> LogEntry;
+
+        // Open the log file once and keep it open for multiple writes
+        int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, PERMISSIONS);
+        if (fd == -1)
+        {
+            // If the file cannot be opened, exit the function early
+            return;
+        }
+
+        std::string LogEntry;
         while (LogQueue.Dequeue(LogEntry))
         {
-            if (LogEntry.IsValid())
+            if (!LogEntry.empty())
             {
-               // FFileHelper::SaveStringToFile(*LogEntry + LINE_TERMINATOR, *LogFilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
-
-                int fd = open(LogFilePathStr.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-                if (fd != -1)
-                {
-//                     FTCHARToUTF8 Converted(**LogEntry.Get());
-//                     write(fd, Converted.Get(), Converted.Length());
-                    write(fd, LogEntry.Get()->c_str(), LogEntry.Get()->length());
-                    close(fd);
-                }
+                // Write log entry to file
+                write(fd, LogEntry.c_str(), LogEntry.length());
             }
         }
+
+        // Close the file after all logs have been written
+        close(fd);
     }
 
     // Get the string representation of the log verbosity

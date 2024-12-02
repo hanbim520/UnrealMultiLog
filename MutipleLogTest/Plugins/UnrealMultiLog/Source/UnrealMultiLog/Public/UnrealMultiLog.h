@@ -1,4 +1,14 @@
-// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
+// Copyright 2024 XD Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+    UnrealMultiLog.h
+
+    Author: Zhang, HaiJun
+
+    Desc:
+=============================================================================*/
+
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -6,13 +16,14 @@
 #include "MultiThreadedLogDevice.h"
 #include "HoloLens/HoloLensPlatformOutputDevices.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Misc/OutputDeviceFile.h"
+
+
+#define container_of(ptr, type, member) \
+    reinterpret_cast<type*>(reinterpret_cast<char*>(ptr) - offsetof(type, member))
 
 
 
-static  FString GetLogFilePath()
-{
-    return FPaths::ProjectLogDir() / (UKismetSystemLibrary::GetGameName() + TEXT(".log"));
-}
 
 class FUnrealMultiLogModule : public IModuleInterface
 {
@@ -23,21 +34,48 @@ public:
 	virtual void ShutdownModule() override;
 
 public:
+
+    static  FString GetUnrealLogFilePath()
+    {
+        //  return FPaths::ProjectLogDir() / (UKismetSystemLibrary::GetGameName() + TEXT(".log"));
+        FString GameLog = "";
+        if (MultiThreadedLogDevice)
+        {
+            GameLog = MultiThreadedLogDevice->GetLogFilePath();
+        }
+
+        return GameLog;
+
+    }
+
     void InitializeMultiThreadedLogging()
     {
         // Add the custom log device to the global log system
         if (GLog)
         {
-            FOutputDevice* OldLog = FPlatformOutputDevices::GetLog();
+            FString GameLog = "";
+            OldLog = FPlatformOutputDevices::GetLog();
+            FOutputDeviceFile* OldLogDeviceFile = static_cast<FOutputDeviceFile*>(OldLog);
+            if (OldLogDeviceFile)
+            {
+                GameLog = OldLogDeviceFile->GetFilename();
+            }
+            GLog->EnableBacklog(true);
             GLog->RemoveOutputDevice(OldLog);
             OldLog->Flush();
-            OldLog->TearDown();
+/*            OldLog->TearDown();*/
 
-            FString LogFilePath = GetLogFilePath();
-            MultiThreadedLogDevice = new FMultiThreadedLogDevice(LogFilePath);
-
+          
+            MultiThreadedLogDevice = new FMultiThreadedLogDevice(GameLog);
             GLog->AddOutputDevice(MultiThreadedLogDevice);
             GLog->EnableBacklog(true);
+          
+            FString LogFilePath = GetUnrealLogFilePath();
+            FOutputDeviceFile* NewLogDeviceFile = static_cast<FOutputDeviceFile*>(OldLog);
+            if (NewLogDeviceFile)
+            {
+                NewLogDeviceFile->SetFilename(*GameLog);
+            }
         }
     }
 
@@ -62,6 +100,13 @@ public:
 
        void HandleShutdownAfterError();
 
+       FMultiThreadedLogDevice* GetMultiThreadedLogDevice()
+       {
+           return MultiThreadedLogDevice;
+       }
+
 private:
     static  FMultiThreadedLogDevice* MultiThreadedLogDevice;
+
+    static FOutputDevice* OldLog;
 };

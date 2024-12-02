@@ -1,19 +1,19 @@
-// Copyright ZhangHaiJun 710605420@qq.com, Inc. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
 #include "HAL/PlatformAtomics.h" // For FPlatformAtomics
 #include <atomic>                // Standard C++ atomic library
 #include <vector>                // For dynamic array (buffer expansion)
 #include <memory>                // For std::unique_ptr
+#include <mutex>                 // For lock_guard
 
-template<typename T, uint32 itialSize = 1024>
+template<typename T, uint32 InitialSize = 1024>
 class TDynamicConcurrentQueue
 {
 public:
     TDynamicConcurrentQueue()
-        : BufferSize(itialSize), Head(0), Tail(0)
+        : BufferSize(InitialSize), Head(0), Tail(0)
     {
-        static_assert((itialSize & (itialSize - 1)) == 0, "InitialSize must be a power of two.");
+        static_assert((InitialSize & (InitialSize - 1)) == 0, "InitialSize must be a power of two.");
         Buffer.resize(BufferSize);
     }
 
@@ -35,7 +35,8 @@ public:
             {
                 // Expand the buffer size
                 ExpandBuffer();
-                NextTail = (Tail.load(std::memory_order_relaxed) + 1) & (BufferSize - 1);
+                LocalTail = Tail.load(std::memory_order_relaxed);  // After expansion, re-read Tail
+                NextTail = (LocalTail + 1) & (BufferSize - 1);
             }
         }
 
@@ -76,6 +77,7 @@ private:
     uint32 BufferSize;          // The size of the buffer
     std::atomic<uint32> Head;   // Atomic index for the head of the queue
     std::atomic<uint32> Tail;   // Atomic index for the tail of the queue
+    mutable std::mutex ExpandMutex;  // Mutex to protect buffer expansion
 
     // Check if there are any dequeued items
     bool HasDequeued() const
@@ -86,6 +88,8 @@ private:
     // Expands the buffer size by doubling it
     void ExpandBuffer()
     {
+        std::lock_guard<std::mutex> Lock(ExpandMutex); // Ensure thread-safe expansion
+
         uint32 OldBufferSize = BufferSize;
         BufferSize *= 2;
         std::vector<T> NewBuffer(BufferSize);
